@@ -1,0 +1,1 @@
+QuizUp without database.
