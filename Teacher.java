@@ -68,13 +68,13 @@ public class Teacher implements Menu {
 
 
                 //ASK TO ADD MORE QUESTIONS
-                System.out.println("\n1 to add next ques");
+                System.out.println("\n1 to add next ques or any other digit to not add next ques");
                 addmore = Integer.parseInt(bufferedReader.readLine());
             }
 
 
             //CONFIRMATION OF ADDING QUIZ
-            System.out.println("\n1 to add quiz");
+            System.out.println("\n1 to add quiz or any other digit to not add the quiz");
             int confirmQuizAdd = Integer.parseInt(bufferedReader.readLine());
          
             if(confirmQuizAdd==1){
