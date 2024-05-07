@@ -13,7 +13,7 @@ public class QuizUp {
         InputStreamReader inputStreamReader= new InputStreamReader(System.in);
 
 
-        
+
         
 
         try (BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
