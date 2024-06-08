@@ -1,20 +1,37 @@
 import java.io.BufferedReader;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.sql.*;
 
 
 public class Teacher implements Menu {
 
-    static Map <String, Map<String,String[]>> quizNameMap = new HashMap<>(); //MAP QUIZ NAME AND (QUESTIONS AND OPTIONS) IN IT
-    static Map <String, Map<String, Integer>> solutionMap = new HashMap<>(); //MAP QUIZ NAME AND (QUESTIONS AND SOLUTIONS) IN IT IN IT
+    private static final String url = "jdbc:mysql://localhost:3306/quizup";
+    private static final String username = "root";
+    private static final String password = "mitaliG$2003";
+    Connection connection;
 
-    
+    {
+        try {
+            connection = DriverManager.getConnection(url, username, password);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
 
-    //METHOD TO ADD A NEW QUIZ
-    public void addQuiz(BufferedReader bufferedReader){ 
+    BufferedReader bufferedReader;
 
-        Map<String, String[]> quesList = new HashMap<>(); //MAP QUESTIONS AND OPTIONS
-        Map<String, Integer> correctOptions = new HashMap<>();  //MAP QUESTIONS AND SOLUTIONS 
+    public Teacher(BufferedReader bufferedReader) {
+        this.bufferedReader = bufferedReader;
+    }
+
+    // METHOD TO ADD A NEW QUIZ
+    public void addQuiz() {
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            System.out.println(e.getMessage());
+        }
 
         try {
             viewQuizes();
@@ -22,138 +39,181 @@ public class Teacher implements Menu {
             System.out.println("\nName of the quiz");
             String quizName = bufferedReader.readLine();
 
-            quesList.clear();
+            int addmore = 1; // FLAG TO ADD MORE QUESTION IN THE QUIZ
+            int i = 1; // COUNT THE NUMBER OF QUESTIONS
 
-            int addmore=1; //FLAG TO ADD MORE QUESTION IN THE QUIZ
-            int i=1;  //COUNT THE NUMBER OF QUESTIONS
+            String query = "insert into questions(ques, option_a, option_b, option_c, option_d, correct,quiz,ques_no) values (?, ?, ?, ?, ?, ?,?,?)";
+            PreparedStatement preparedStatement = connection.prepareStatement(query);
 
-            while(addmore==1){
+            while (addmore == 1) {
 
-                //INPUT THE QUESTION
-                System.out.println("\n"+i+" Write down the question");
+                // INPUT THE QUESTION
+                System.out.println("\n" + i + " Write down the question");
                 String ques = bufferedReader.readLine();
+                preparedStatement.setString(1, ques);
                 i++;
 
-
-                //INPUT THE OPTIONS
-                String[] options = new String[4];
-
+                // INPUT THE OPTIONS
                 System.out.println("\nEnter options");
-                for(int n=0;n<4;n++){
-                    options[n] = bufferedReader.readLine();
+                for (int n = 0; n < 4; n++) {
+                    String option = bufferedReader.readLine();
+                    preparedStatement.setString(n + 2, option);
                 }
 
-
-                //PUTTING IN LIST
-                quesList.put(ques,options);
-
-
-
-                //INPUT THE CORRECT OPTION
-                boolean validInput=false;
-                do{
+                // INPUT THE CORRECT OPTION
+                boolean validInput;
+                do {
                     System.out.println("\nCorrect option - 1,2,3,4");
                     int optionInput = Integer.parseInt(bufferedReader.readLine());
-                    
-                    if(optionInput==1 || optionInput==2 || optionInput==3 || optionInput==4){
-                        correctOptions.put(ques, optionInput);
+
+                    if (optionInput == 1 || optionInput == 2 || optionInput == 3 || optionInput == 4) {
+                        preparedStatement.setInt(6, optionInput);
                         validInput = true;
-                    }
-                    else{
+                    } else {
                         System.out.println("\nWrong input");
-                        validInput=false;
+                        validInput = false;
                     }
-                }
-                while(!validInput);
+                } while (!validInput);
 
+                // add quizname
+                preparedStatement.setString(7, quizName);
 
-                //ASK TO ADD MORE QUESTIONS
+                // add qes_no
+                preparedStatement.setInt(8, i);
+
+                // add this question to batch
+                preparedStatement.addBatch();
+
+                // ASK TO ADD MORE QUESTIONS
                 System.out.println("\n1 to add next ques or any other digit to not add next ques");
                 addmore = Integer.parseInt(bufferedReader.readLine());
             }
 
-
-            //CONFIRMATION OF ADDING QUIZ
+            // CONFIRMATION OF ADDING QUIZ
             System.out.println("\n1 to add quiz or any other digit to not add the quiz");
             int confirmQuizAdd = Integer.parseInt(bufferedReader.readLine());
-         
-            if(confirmQuizAdd==1){
-                quizNameMap.put(quizName, quesList);
-                solutionMap.put(quizName, correctOptions);
 
-                System.out.println("\nQuiz added");
-            }
-            else{
+            if (confirmQuizAdd == 1) {
+                // quizNameMap.put(quizName, quesList);
+                // solutionMap.put(quizName, correctOptions);
+
+                // add question in questions table
+                int[] row = preparedStatement.executeBatch();
+                boolean prblm = false;
+                for (int j = 0; j < row.length; j++) {
+                    if (row[j] != 1) {
+                        System.out.println("Failed to add question " + (j + 1));
+                        prblm = true;
+                    }
+                }
+
+                if (!prblm) {
+                    // try to add quiz in quizes
+                    try {
+                        Statement statement = connection.createStatement();
+                        String query3 = String.format("delete from quizes where quiz_name = '%s'", quizName);
+                        String query2 = String.format("insert into quizes(quiz_name) values ('%s')", quizName);
+                        statement.executeUpdate(query3);
+                        int rows2 = statement.executeUpdate(query2);
+
+                        if (rows2 > 0) {
+                            System.out.println("\nQuiz added");
+                        } else {
+                            System.out.println("\nQuiz not added");
+                        }
+
+                    } catch (SQLException e) {
+                        System.out.println("\nQuiz not added");
+                        System.out.println(e.getMessage());
+                    }
+                } else {
+                    System.out.println("\nQuiz not added");
+                }
+            } else {
                 System.out.println("\nQuiz not added");
             }
-
-            
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
-        catch (Exception e) {
-            e.printStackTrace();
-        }   
     }
 
+    // METHOD TO SHOW SCORE OF ALL STUDENTS
+    public void scoreboard() {
 
+        while (true) {
 
-    //METHOD TO SHOW SCORE OF ALL STUDENTS
-    public void scoreboard(){
+            try {
+                viewQuizes();
+                System.out.println("\nEnter the quiz name to see the scoreboard \nelse Press 0");
+                String quiz = bufferedReader.readLine();
 
-        //IF NO STUDENT SOLVED ANY QUIZ
-        if (Student.scoreOfAllStudents.isEmpty()) {
-            System.out.println("\nNothing to show");
-       }
+                if (quiz.equals("0")) {
+                    break;
+                }
 
-       //ELSE
-       else{
-            System.out.println("\nScore Board");
+                String query = String.format(
+                        "select username, sum(score) as s from score where quizname = '%s' group by username order by s desc",
+                        quiz);
+                Statement statement = connection.createStatement();
 
-            for(String studentName: Student.scoreOfAllStudents.keySet()){
-                System.out.println("\n"+studentName);
+                ResultSet resultSet = statement.executeQuery(query);
 
-                if(Student.scoreOfAllStudents.get(studentName).isEmpty()){
+                if (resultSet.next()) {
+
+                    String tableFormat = "| %-30s | %-7d |%n";
+                    System.out.format("+--------------------------------+---------+%n");
+                    System.out.format("|            Username            |  Score  |%n");
+                    System.out.format("+--------------------------------+---------+%n");
+
+                    do {
+                        System.out.format(tableFormat, resultSet.getString(1), resultSet.getInt(2));
+                    } while (resultSet.next());
+
+                    System.out.format("+--------------------------------+---------+%n");
+
+                } else {
                     System.out.println("Nothing to show");
                 }
-                else{
-                    for(String quizName : Student.scoreOfAllStudents.get(studentName).keySet()){
-                        System.out.println(quizName+": "+Student.scoreOfAllStudents.get(studentName).get(quizName).get(0));
-                    
-                    }
+
+            } catch (SQLException | IOException e) {
+                System.out.println(e.getMessage());
             }
-            
         }
-       }
     }
 
-
-
-    //VIEW THE LIST OF QUIZES AND RETURN FALSE IF NO QUIZ AVAILABLE
+    // VIEW THE LIST OF QUIZES AND RETURN FALSE IF NO QUIZ AVAILABLE
     public boolean viewQuizes() {
-        
-        //IF NO QUIZ AVAILABLE
-        if(quizNameMap.isEmpty()){
-            System.out.println("\nNo quiz available");
-            return false;
-        }
 
-        //ELSE
-        else{
-            System.out.println("\nAvailable quizes");
+        try {
+            Statement statement = connection.createStatement();
 
-            int i=1;
-            for(String keys: quizNameMap.keySet()){
-                System.out.println(i+" "+keys);
-                i++;
-                    
+            String query = " select quiz_name from quizes";
+            ResultSet resultSet = statement.executeQuery(query);
+
+            if (!resultSet.next()) {
+                System.out.println("\nNo quiz available");
+                return false;
+            } else {
+                System.out.println("\nAvailable quizes");
+                // int id = resultSet.getInt("no");
+                String name = resultSet.getString("quiz_name");
+                System.out.println(name);
+
+                while (resultSet.next()) {
+                    // id = resultSet.getInt("no");
+                    name = resultSet.getString("quiz_name");
+                    System.out.println(name);
+                }
+
             }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
         }
+
         return true;
     }
 
-    
-
-    public String toString(){
+    public String toString() {
         return "teacher";
     }
-        
 }

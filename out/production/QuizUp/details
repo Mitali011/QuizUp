@@ -1,0 +1,11 @@
+quiz --> static hasmap of (hashmap of arraylist) 2d arraylist of string
+solutions --> static (hashmap of arraylist) 2d arraylist of int
+
+student response --> arraylist of int
+
+*match the solutions and response arraylist 
+int score and update scoreboard
+
+scoreboard --> hashmap of (hashmap of arraylist) 2d array of score in quizes
+view score using hashmapping name on scoreboard
+
